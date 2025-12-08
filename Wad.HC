@@ -585,4 +585,5 @@ LoadWadGr(wad);
 
 
 static CDC* J1= FramePtr("J1");
-static CDC* J2= FramePtr("J2");
+static CDC* J2= FramePtr("J2");
+static CDC* J3= FramePtr("J3");

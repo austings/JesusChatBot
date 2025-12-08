@@ -3,9 +3,18 @@
 #include "Markov2.HC";
 U8 *MARKOV_FILE = MStrPrint("%s%s",DirCur,"/jesusss.DD");
 
+Bool thinking = FALSE;
+
+
+U8 *Reply(U8 *a)
+{
+ U8 * gen = HashSingleTableFind(a, tokens, HTT_FRAME_PTR);
+ 
+}
+
 U8 *GenerateJesusSpeech(){
  //I64 r = 5 + (RandU16() % 21);
- I64 r = 1 + (RandU16() % 5);
+ I64 r = 1 + (RandU16() % (StrLen(devc.line[0]))/2);
 
  U8 *speech2 = MarkovGenerate(DocPut,MARKOV_FILE,r,"The"); 
  U8 *speech = MStrPrint("%s%s.","The",speech2); 
@@ -15,15 +24,19 @@ U8 *GenerateJesusSpeech(){
 //
 // Task Functions
 U0 DrawIt(CTask *task, CDC *dc){
- GrBlot3(dc,240,80,0,J1);
+ if(!thinking)
+  GrBlot3(dc,240,80,0,J1);
+ else
+  GrBlot3(dc,240,80,0,J3);
+
  GrBlot3(dc,0,0,0,RenderDev);
 
 }
 
 U0 Main(){
  //Set Device context, iterables, peripheral arguments
- CDC *dc=DCAlias; I64 arg1,arg2,msg_code,i,j;
- //Default Window settings
+ CDC *dc=DCAlias; I64 arg1,arg2,msg_code,i,j;
+ //Default Window set$UL,0$tings
  SettingsPush;WinMax;WinBorder;
  DocCursor;DocClear;MenuPush("");
  //Set Current Task Threads  
@@ -45,8 +58,14 @@ U0 Main(){
    case MSG_KEY_DOWN:
     if(arg1!=0){ 
      if((arg2.u8[0])==SC_ENTER){
+      thinking = TRUE;
+      DCFill;
+      Refresh;
+      Sleep(1);
+      DCFill;
       DevKeyEnter;
-      PrintDevMessage(GenerateJesusSpeech);
+      PrintDevMessage(GenerateJesusSpeech,FALSE);
+      thinking = FALSE;
      }else{
      AddDevChar(arg1);}
     }else{

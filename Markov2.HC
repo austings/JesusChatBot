@@ -26,7 +26,7 @@ U8 *GetWord(U8 **_ptr) {
         buf[out_idx++] = ToUpper(ch);
         capitalize_next = FALSE;
       } else {
-        buf[out_idx++] = ToLower(ch);
+        buf[out_idx++] = ToLower(ch);
       }
     }
   }
@@ -42,7 +42,7 @@ U8 *GetWord(U8 **_ptr) {
   *_ptr = ptr;
   return StrNew(buf);
 }
-
+CHashTable *tokens;
 U8 *MarkovGenerate(CDoc *to=NULL, U8 *file, I64 cnt=300, U8 *start_word) {
   U8 *dialog = "";
   I64 linecounter = 0;
@@ -101,7 +101,7 @@ skip:
           a=gen->user_data0;
           U8 *dialogWord;
 
-          if(StrLen(a)==1)
+          if(StrLen(a)==1&&StrCmp(a,"I")!=0&&StrCmp(a,"a")!=0&&StrCmp(a,"i")!=0)
            dialogWord =MStrPrint("%s",a);
           else
            dialogWord =  MStrPrint(" %s",a);
@@ -121,7 +121,8 @@ skip:
     }
   }
   Fs->hash_table = t->next;
-  HashTableDel(t);
+  tokens = t;
+  //HashTableDel(t);
   Free(optr);
   return dialog;
 }
@@ -134,5 +135,5 @@ U8 *speech = MStrPrint("%s%s.","The",speech2);
 Free(MARKOV_FILE);
 Free(speech);
 Free(speech2);
- 
+ 
 */ 
