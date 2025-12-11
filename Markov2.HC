@@ -26,7 +26,7 @@ U8 *GetWord(U8 **_ptr) {
         buf[out_idx++] = ToUpper(ch);
         capitalize_next = FALSE;
       } else {
-        buf[out_idx++] = ToLower(ch);
+        buf[out_idx++] = ToLower(ch);
       }
     }
   }
@@ -42,98 +42,118 @@ U8 *GetWord(U8 **_ptr) {
   *_ptr = ptr;
   return StrNew(buf);
 }
-CHashTable *tokens;
-U8 *MarkovGenerate(CDoc *to=NULL, U8 *file, I64 cnt=300, U8 *start_word) {
-  U8 *dialog = "";
-  I64 linecounter = 0;
-  if (!FileFind(file))
-    return;
-  U8 buf[STR_LEN * 2], *a, *b;
-  CHashTable *t = HashTableNew(0x1000);
-  CHashGeneric *gen;
-  I64 idx, idx2;
-  F64 *probs, sum, coin;
-  U8 *optr = file = FileRead(file);
-  file = optr;
-  t->next = Fs->hash_table;
-  Fs->hash_table = t;
 
-  a = GetWord(&file);
-  b = GetWord(&file);
+CHashTable *vocab=NULL;
 
-  while (*file) {
-    for (idx = 1; gen = HashSingleTableFind(a, t, HTT_FRAME_PTR, idx); ++idx) {
-      if (!StrCmp(gen->user_data0, b)) {
-        ++gen->user_data1;
-        goto skip;
-      }
-    }
-    FramePtrAdd(a, StrNew(b));
-skip:
-    Free(a);
-    a = StrNew(b);
-    b = GetWord(&file);
+U8 *MarkovGenerate(CDoc *to=NULL,U8 *filename,I64 cnt=300,U8 *start_word){
+ if(!FileFind(filename))
+  return StrNew("");
+
+ U8 *buf=FileRead(filename);
+ if(!buf)
+  return StrNew("");
+
+ U8 *p=buf;
+ U8 *dialog=StrNew("");
+ I64 linecounter=0;
+
+ CHashTable *t=HashTableNew(0x1000);
+ CHashGeneric *gen;
+ I64 idx,idx2;
+ F64 *probs,sum,coin;
+
+ t->next=Fs->hash_table;
+ Fs->hash_table=t;
+
+ U8 *a=GetWord(&p);
+ U8 *b=GetWord(&p);
+
+ if(!vocab){
+  vocab=HashTableNew(0x1000);
+  CHashTable *old=Fs->hash_table;
+  vocab->next=old;
+  Fs->hash_table=vocab;
+
+  U8 *vp=buf;
+  U8 *w=GetWord(&vp);
+  while(*vp){
+   if(!HashSingleTableFind(w,vocab,HTT_FRAME_PTR))
+    FramePtrAdd(StrNew(w),NULL);
+   Free(w);
+   w=GetWord(&vp);
   }
+  Free(w);
 
+  Fs->hash_table=old;
+ }
+
+ while(*p){
+  for(idx=1;gen=HashSingleTableFind(a,t,HTT_FRAME_PTR,idx);idx++){
+   if(!StrCmp(gen->user_data0,b)){
+    ++gen->user_data1;
+    goto skip_pair;
+   }
+  }
+  FramePtrAdd(a,StrNew(b));
+skip_pair:
   Free(a);
-  Free(b);
+  a=StrNew(b);
+  b=GetWord(&p);
+ }
 
-  if (gen = HashSingleTableFind(start_word, t, HTT_FRAME_PTR)) {
-    a = start_word;
-    while (--cnt >= 0) {
-      for (idx = 1; gen = HashSingleTableFind(a, t, HTT_FRAME_PTR, idx); ++idx)
-        ;
-      probs = CAlloc(8 * idx);
-      sum = 0;
-      for (idx = 1; gen = HashSingleTableFind(a, t, HTT_FRAME_PTR, idx); ++idx) {
-        probs[idx - 1] = gen->user_data1 + 1;
-        sum += gen->user_data1 + 1;
-      }
-      for (idx2 = 1; idx2 < idx; ++idx2)
-        probs[idx2 - 1] /= sum;
+ Free(a);
+ Free(b);
 
-      coin = Rand;
-      sum = 0;
-      for (idx2 = 1; idx2 < idx; ++idx2) {
-        sum += probs[idx2 - 1];
-        if (sum + .0001 >= coin) {
-          gen = HashSingleTableFind(a, t, HTT_FRAME_PTR, idx2);
-          a=gen->user_data0;
-          U8 *dialogWord;
+ Fs->hash_table=t;
 
-          if(StrLen(a)==1&&StrCmp(a,"I")!=0&&StrCmp(a,"a")!=0&&StrCmp(a,"i")!=0)
-           dialogWord =MStrPrint("%s",a);
-          else
-           dialogWord =  MStrPrint(" %s",a);
-          linecounter = linecounter + StrLen(dialogWord);
-          if (linecounter > 25) {
-            dialog = MStrPrint("%s%s", dialog, dialogWord);
-            linecounter = 0;
-          } else {
-            dialog = MStrPrint("%s%s", dialog, dialogWord);
-          }
-          Free(dialogWord);
+ gen=HashSingleTableFind(start_word,t,HTT_FRAME_PTR);
+ if(gen){
+  U8 *cur=start_word;
 
-          break;
-        }
-      }
-      Free(probs);
+  while(--cnt>=0){
+   for(idx=1;gen=HashSingleTableFind(cur,t,HTT_FRAME_PTR,idx);idx++);
+   if(idx<=1)
+    break;
+
+   probs=CAlloc(8*idx);
+   sum=0;
+   for(idx2=1;gen=HashSingleTableFind(cur,t,HTT_FRAME_PTR,idx2);idx2++){
+    probs[idx2-1]=gen->user_data1+1;
+    sum+=gen->user_data1+1;
+   }
+   for(idx2=1;idx2<idx;idx2++)
+    probs[idx2-1]/=sum;
+
+   coin=Rand;
+   sum=0;
+   for(idx2=1;idx2<idx;idx2++){
+    sum+=probs[idx2-1];
+    if(sum+.0001>=coin){
+     gen=HashSingleTableFind(cur,t,HTT_FRAME_PTR,idx2);
+     cur=gen->user_data0;
+
+     U8 *dialogWord;
+     if(StrLen(cur)==1 && StrCmp(cur,"I")!=0 && StrCmp(cur,"a")!=0 && StrCmp(cur,"i")!=0)
+      dialogWord=MStrPrint("%s",cur);
+     else
+      dialogWord=MStrPrint(" %s",cur);
+
+     linecounter+=StrLen(dialogWord);
+     dialog=MStrPrint("%s%s",dialog,dialogWord);
+     Free(dialogWord);
+
+     break;
     }
+   }
+
+   Free(probs);
   }
-  Fs->hash_table = t->next;
-  tokens = t;
-  //HashTableDel(t);
-  Free(optr);
-  return dialog;
+ }
+
+ Fs->hash_table=t->next;
+ HashTableDel(t);
+ Free(buf);
+
+ return dialog;
 }
-/*
-I64 r = 5 + (RandU16() % 21);
-U8 *MARKOV_FILE = MStrPrint("%s%s",DirCur,"/jesusss.DD");
-U8 *speech2 = MarkovGenerate(DocPut,MARKOV_FILE,r,"The"); 
-U8 *speech = MStrPrint("%s%s.","The",speech2); 
-"\n%s\n",speech;
-Free(MARKOV_FILE);
-Free(speech);
-Free(speech2);
- 
-*/ 
+

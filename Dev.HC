@@ -33,7 +33,7 @@ I64 PrintLine(CDC *dc=gr.dc,U8 *line,I64 startx,I64 starty,F64 scale=1){
   while(i<len && line[i]!=' ' && line[i]!='\n')
    i++;
   I64 wordEnd=i;
-  I64 wordLen=wordEnd-wordStart;
+  I64 wordLen=wordEnd-wordStart;
 
   Bool hasSpace=FALSE;
   if(i<len && line[i]==' ')
@@ -180,7 +180,7 @@ CDC *RenderDevOld(){
  I64 i;
 
  devc.cmd=DCNew(300,640);
- DCFill(devc.cmd,TRANSPARENT);
+ DCFill(devc.cmd,TRANSPARENT);
 
  for(i=9;i>=0;i--){
   if(devc.line[i]==NULL)
